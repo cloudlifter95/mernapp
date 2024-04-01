@@ -1,6 +1,6 @@
 import logo from './logo.svg';
 import './App.css';
-import { useQuery, gql } from '@apollo/client';
+import { useQuery, gql, useMutation } from '@apollo/client';
 import Paper from '@mui/material/Paper';
 import * as React from 'react';
 import List from '@mui/material/List';
@@ -22,23 +22,62 @@ const TodosQuery = gql`
   }
 `;
 
+const updateMutation = gql`
+  mutation($id: ID!, $complete: Boolean!) {
+    updateTodo(id: $id, complete: $complete)
+  }
+`;
+
+const removeMutation = gql`
+  mutation($id: ID!) {
+    removeTodo(id: $id)
+  }
+`;
+
 function DisplayTodos() {
-
-
-  const updateTodo = todo => {
-    console.log(`update ${todo.id}`);
-  };
-  const removeTodo = todo => {
-    console.log(`remove ${todo.id}`)
-  };
-
-  const { loading, error, data } = useQuery(TodosQuery);
+  const [updateTodo] = useMutation(updateMutation);
+  const [removeTodo] = useMutation(removeMutation);
+  const { loading, error, data, refetch } = useQuery(TodosQuery);
   console.log(loading, data);
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error : {error.message}</p>;
   console.log(loading, data);
   const { todos } = data;
   // console.log(todos);
+  // let test=5
+  const UpdateTodo = async (todo, onUpdate) => {
+    console.log(`update ${todo.id}`);
+
+    try {
+      await updateTodo({
+        variables: {
+          id: todo.id,
+          complete: !todo.complete
+        }
+      })
+    } catch (error) {
+      console.error('Error updating todo:', error.message);
+    }
+    // console.log(test)
+    onUpdate();
+  };
+
+  const RemoveTodo = async (todo, onRemove) => {
+    console.log(`remove ${todo.id}`)
+    
+    try {
+      await removeTodo({
+        variables: {
+          id: todo.id
+        }
+      })
+    } catch (error) {
+      console.error('Error updating todo:', error.message);
+    }
+    // console.log(test)
+    onRemove();
+  };
+
   return (
     <List dense sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}>
       {todos.map((todo) => {
@@ -49,7 +88,7 @@ function DisplayTodos() {
             secondaryAction={
               <Checkbox
                 edge="end"
-                onChange={() => updateTodo(todo)}
+                onChange={() => UpdateTodo(todo, () => refetch())}
                 checked={todo.complete}
                 inputProps={{ 'aria-labelledby': labelId }}
               />
@@ -57,7 +96,7 @@ function DisplayTodos() {
             disablePadding
           >
             <ListItemButton>
-              <DeleteIcon onClick={() => removeTodo(todo)}
+              <DeleteIcon onClick={() => RemoveTodo(todo, () => refetch())}
               />
             </ListItemButton>
             <ListItemButton>
