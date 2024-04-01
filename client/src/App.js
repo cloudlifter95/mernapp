@@ -10,6 +10,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Chip from '@mui/material/Chip';
+import Form from './Form';
 
 
 const TodosQuery = gql`
@@ -34,9 +35,22 @@ const removeMutation = gql`
   }
 `;
 
+const createMutation = gql`
+  mutation($text: String!) {
+    createTodo(text: $text) {
+      id
+      text
+      complete
+    }
+  }
+`;
+
 function DisplayTodos() {
   const [updateTodo] = useMutation(updateMutation);
   const [removeTodo] = useMutation(removeMutation);
+  const [createTodo] = useMutation(createMutation);
+  
+  // ******************* for displaying all  ******************* \\
   const { loading, error, data, refetch } = useQuery(TodosQuery);
   console.log(loading, data);
   if (loading) return <p>Loading...</p>;
@@ -45,6 +59,8 @@ function DisplayTodos() {
   const { todos } = data;
   // console.log(todos);
   // let test=5
+    // ********************************************************* \\
+    
   const UpdateTodo = async (todo, onUpdate) => {
     console.log(`update ${todo.id}`);
 
@@ -64,7 +80,7 @@ function DisplayTodos() {
 
   const RemoveTodo = async (todo, onRemove) => {
     console.log(`remove ${todo.id}`)
-    
+
     try {
       await removeTodo({
         variables: {
@@ -78,34 +94,53 @@ function DisplayTodos() {
     onRemove();
   };
 
+  const CreateTodo = async (text, onCreate) => {
+    console.log(`create ${text}`)
+
+    try {
+      await createTodo({
+        variables: {
+          text: text
+        }
+      })
+    } catch (error) {
+      console.error('Error creating todo:', error.message);
+    }
+    // console.log(test)
+    onCreate();
+  };
+
   return (
-    <List dense sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}>
-      {todos.map((todo) => {
-        const labelId = `checkbox-list-secondary-label-${todo.id}`;
-        return (
-          <ListItem
-            key={todo.id}
-            secondaryAction={
-              <Checkbox
-                edge="end"
-                onChange={() => UpdateTodo(todo, () => refetch())}
-                checked={todo.complete}
-                inputProps={{ 'aria-labelledby': labelId }}
-              />
-            }
-            disablePadding
-          >
-            <ListItemButton>
-              <DeleteIcon onClick={() => RemoveTodo(todo, () => refetch())}
-              />
-            </ListItemButton>
-            <ListItemButton>
-              <ListItemText id={labelId} primary={`${todo.text}`} />
-            </ListItemButton>
-          </ListItem>
-        );
-      })}
-    </List>
+    <>
+      <Form submit={(arg1) => CreateTodo(arg1, () => refetch())} />
+      <List dense sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}>
+        {todos.map((todo) => {
+          const labelId = `checkbox-list-secondary-label-${todo.id}`;
+          return (
+            <ListItem
+              key={todo.id}
+              secondaryAction={
+                <Checkbox
+                  edge="end"
+                  onChange={() => UpdateTodo(todo, () => refetch())}
+                  checked={todo.complete}
+                  inputProps={{ 'aria-labelledby': labelId }}
+                />
+              }
+              disablePadding
+            >
+              <ListItemButton>
+                <DeleteIcon onClick={() => RemoveTodo(todo, () => refetch())}
+                />
+              </ListItemButton>
+              <ListItemButton>
+                <ListItemText id={labelId} primary={`${todo.text}`} />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+    </>
   )
 }
 
